@@ -23,8 +23,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Apply source consistency fixes
-        shell: python
+        shell: bash
         run: |
+          python - <<'PY'
           from pathlib import Path
           import re
 
@@ -39,8 +40,7 @@ jobs:
             const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
             const randomTheme = bgStyles[Math.floor(Math.random() * bgStyles.length)];
 
-            // Shuffle changes style only. User content, media, tags, links,
-            // visibility settings, and transforms must never be overwritten.
+            // Shuffle changes style only. Never overwrite user content or media.
             onUpdatePost({
               template: randomTemplate.id,
               bgStyle: randomTheme.id,
@@ -139,6 +139,7 @@ jobs:
               if count != 1:
                   raise SystemExit(f'Corporate palette not found in {filename}')
               p.write_text(updated, encoding='utf-8')
+          PY
 
       - name: Commit source fixes
         shell: bash
