@@ -1,0 +1,178 @@
+name: Repair theme consistency
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Repair source
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          import re
+
+          studio = Path('src/components/ThumbnailStudioView.tsx')
+          s = studio.read_text()
+
+          old_shuffle = """  const applyRandomPreset = () => {
+            const random = samplePresets[Math.floor(Math.random() * samplePresets.length)];
+            onUpdatePost(random);
+          };"""
+          new_shuffle = """  const applyRandomPreset = () => {
+            const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
+            const randomTheme = bgStyles[Math.floor(Math.random() * bgStyles.length)];
+
+            // Shuffle is a style operation only. Never overwrite the user's content,
+            // media, tags, links, visibility settings, or transforms.
+            onUpdatePost({
+              template: randomTemplate.id,
+              bgStyle: randomTheme.id,
+            });
+          };"""
+          if old_shuffle in s:
+              s = s.replace(old_shuffle, new_shuffle)
+
+          s = s.replace(
+              "{ id: 'corporate', label: 'Corporate', desc: 'Classic Royal Blue', color: 'from-slate-900 via-blue-600 to-sky-400', dotColor: '#2563EB', border: 'border-blue-500' },",
+              "{ id: 'corporate', label: 'Corporate', desc: 'Navy & Royal Blue', color: 'from-[#071426] via-[#123A6B] to-[#3B82F6]', dotColor: '#3B82F6', border: 'border-blue-500' },"
+          )
+
+          # samplePresets is no longer used by Shuffle. Remove it so stale demo
+          # content cannot accidentally become a future source of user resets.
+          s = re.sub(
+              r"\nconst samplePresets: Partial<PostData>\[\] = \[[\s\S]*?\n\];\n\nconst KeywordInput",
+              "\nconst KeywordInput",
+              s,
+              count=1,
+          )
+          studio.write_text(s)
+
+          # Minimalistic: links are links, not a numbered list. Keep the Swiss
+          # rectangular treatment but remove [01], [02], [03] tracking labels.
+          minimal = Path('src/components/canvas/minimalistic.ts')
+          s = minimal.read_text()
+          s = s.replace(
+              """        const indexStr = `[0${idx + 1}]`;
+        const text = `${indexStr} / ${label}`;""",
+              """        const text = label;"""
+          )
+          s = s.replace(
+              """        // Accent index bracket
+        ctx.fillStyle = palette.accent;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(indexStr, curX + (isPortrait ? 10 : 8), footerY);
+
+        // Label
+        const bracketW = ctx.measureText(indexStr + ' ').width;
+        ctx.fillStyle = palette.ink;
+        ctx.fillText(`/ ${label}`, curX + (isPortrait ? 10 : 8) + bracketW, footerY);""",
+              """        ctx.fillStyle = palette.ink;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, curX + itemW / 2, footerY);"""
+          )
+          minimal.write_text(s)
+
+          # One Corporate theme means one Corporate palette. Layouts remain
+          # template-specific, but the theme's visual identity does not change.
+          corporate = {
+              'src/components/canvas/professional.ts': """corporate: {
+      bgTop: '#071426',
+      bgBottom: '#0B2A52',
+      cardBg: 'rgba(10, 31, 61, 0.82)',
+      cardBorder: 'rgba(96, 165, 250, 0.18)',
+      ink: '#F8FAFC',
+      muted: '#B8C7DA',
+      accent: '#3B82F6',
+      accentSoft: 'rgba(59, 130, 246, 0.16)',
+      pillBg: 'rgba(255, 255, 255, 0.06)',
+      pillBorder: 'rgba(96, 165, 250, 0.28)',
+      gold: '#F59E0B',
+    },""",
+              'src/components/canvas/minimalistic.ts': """corporate: {
+      bg: '#071426',
+      cardBg: '#0D223F',
+      ink: '#F8FAFC',
+      muted: '#B8C7DA',
+      line: 'rgba(148, 163, 184, 0.22)',
+      accent: '#3B82F6',
+      pillBg: 'rgba(59, 130, 246, 0.10)',
+      pillBorder: 'rgba(96, 165, 250, 0.35)',
+    },""",
+              'src/components/canvas/bohemian.ts': """corporate: {
+      background: '#071426',
+      paper: '#0D223F',
+      ink: '#F8FAFC',
+      muted: '#B8C7DA',
+      accent: '#3B82F6',
+      accentSoft: 'rgba(59, 130, 246, 0.16)',
+      line: 'rgba(148, 163, 184, 0.22)',
+      pillBg: 'rgba(59, 130, 246, 0.10)',
+      pillBorder: 'rgba(96, 165, 250, 0.35)',
+    },""",
+              'src/components/canvas/ethereal.ts': """corporate: { bg: '#071426', panel: '#0D223F', ink: '#F8FAFC', muted: '#B8C7DA', accent: '#3B82F6', line: 'rgba(148,163,184,.22)' },""",
+              'src/components/canvas/techSaas.ts': """corporate: { primary: '#3B82F6', glow: 'rgba(59, 130, 246, 0.28)', bg: '#071426' },""",
+              'src/components/canvas/youtubeBold.ts': """corporate: { bg: '#071426', text: '#FFFFFF', accent: '#3B82F6', blockText: '#000000', glow: '#2563EB' },""",
+          }
+
+          for filename, replacement in corporate.items():
+              p = Path(filename)
+              text = p.read_text()
+              updated, count = re.subn(
+                  r"corporate:\s*\{[\s\S]*?\},\s*\n",
+                  replacement + "\n",
+                  text,
+                  count=1,
+              )
+              if count != 1:
+                  raise SystemExit(f'Could not replace Corporate palette in {filename}')
+              p.write_text(updated)
+
+          print('Theme/shuffle repair applied.')
+          PY
+
+      - name: Commit repaired source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/ThumbnailStudioView.tsx src/components/canvas .github/workflows/repair-theme-consistency.yml
+          if git diff --cached --quiet; then
+            echo "No repair changes needed."
+            exit 0
+          fi
+          git commit -m "fix: make shuffle and themes consistent"
+          git push
+
+      - name: Trigger Pages deployment
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run "Deploy to GitHub Pages" --ref main
+
+      - name: Remove repair workflow from source
+        if: always()
+        run: |
+          git fetch origin main
+          git checkout main
+          if [ -f .github/workflows/repair-theme-consistency.yml ]; then
+            git rm .github/workflows/repair-theme-consistency.yml
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: remove one-time repair workflow"
+            git push
+          fi
