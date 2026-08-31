@@ -1,0 +1,193 @@
+name: One-time Design Repair
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: ${{ !startsWith(github.event.head_commit.message, 'fix: repair corporate design') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Repair canvas renderers
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          ROOT = Path('src/components/canvas')
+
+          corporate = {
+            'professional.ts': """corporate: {
+                bgTop: '#07162F',
+                bgBottom: '#102E5C',
+                cardBg: 'rgba(9, 25, 52, 0.90)',
+                cardBorder: 'rgba(96, 165, 250, 0.24)',
+                ink: '#F8FAFF',
+                muted: '#B9C9E2',
+                accent: '#4F8CFF',
+                accentSoft: 'rgba(79, 140, 255, 0.16)',
+                pillBg: 'rgba(79, 140, 255, 0.10)',
+                pillBorder: 'rgba(96, 165, 250, 0.34)',
+                gold: '#60A5FA',
+              },""",
+            'minimalistic.ts': """corporate: {
+      bg: '#081832',
+      cardBg: '#10264A',
+      ink: '#F8FAFF',
+      muted: '#B8C8E0',
+      line: 'rgba(148, 163, 184, 0.22)',
+      accent: '#4F8CFF',
+      pillBg: 'rgba(79, 140, 255, 0.10)',
+      pillBorder: 'rgba(96, 165, 250, 0.34)',
+    },""",
+            'ethereal.ts': """corporate: { bg: '#081832', panel: '#10264A', ink: '#F8FAFF', muted: '#B8C8E0', accent: '#5B9CFF', line: 'rgba(96,165,250,.28)' },""",
+            'bohemian.ts': """corporate: {
+      background: '#081832',
+      paper: '#10264A',
+      ink: '#F8FAFF',
+      muted: '#B8C8E0',
+      accent: '#5B9CFF',
+      accentSoft: 'rgba(91, 156, 255, 0.16)',
+      line: 'rgba(148, 163, 184, 0.22)',
+      pillBg: 'rgba(91, 156, 255, 0.10)',
+      pillBorder: 'rgba(96, 165, 250, 0.34)',
+    },""",
+            'techSaas.ts': """corporate: { primary: '#5B9CFF', glow: 'rgba(91, 156, 255, 0.24)', bg: '#081832' },""",
+            'youtubeBold.ts': """corporate: { bg: '#081832', text: '#F8FAFF', accent: '#5B9CFF', blockText: '#07162F', glow: '#2563EB' },""",
+          }
+
+          for name, replacement in corporate.items():
+              p = ROOT / name
+              s = p.read_text(encoding='utf-8')
+              # Replace only the Corporate palette entry, regardless of its old formatting/comment.
+              pattern = re.compile(r'(?m)^\s*corporate:\s*\{[\s\S]*?^\s*\},')
+              n, count = pattern.subn('\n    ' + replacement, s, count=1)
+              if count != 1:
+                  raise SystemExit(f'Could not replace Corporate palette in {p}')
+              p.write_text(n, encoding='utf-8')
+
+          # Minimalistic footer: real labels only; no artificial [01] / [02] / numbering.
+          p = ROOT / 'minimalistic.ts'
+          s = p.read_text(encoding='utf-8')
+          footer_pattern = re.compile(r'\n  // --- 8\. SWISS MODERNIST FOOTER LINKS ---[\s\S]*?(?=\n};\n)')
+          footer = r'''
+  // --- 8. SWISS MODERNIST FOOTER LINKS ---
+  if (props.showFooterLinks !== false && props.footerLinks && props.footerLinks.length > 0) {
+    const rawLinks = props.footerLinks.slice(0, 4).filter(Boolean);
+    if (rawLinks.length > 0) {
+      ctx.save();
+      const footerY = botY - (isPortrait ? 20 : 12);
+      const fontSz = isPortrait ? 16 : 12;
+      ctx.font = `600 ${fontSz}px "Space Grotesk", "Plus Jakarta Sans", sans-serif`;
+      ctx.fillStyle = palette.muted;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      let curX = padX + 24;
+      rawLinks.forEach((link) => {
+        const { label } = getLinkIconAndLabel(link);
+        const text = label;
+        const itemW = ctx.measureText(text).width + (isPortrait ? 24 : 16);
+        const itemH = isPortrait ? 32 : 22;
+        if (curX + itemW > width - padX - 20 && curX > padX + 24) return;
+        ctx.fillStyle = palette.cardBg;
+        ctx.fillRect(curX, footerY - itemH / 2, itemW, itemH);
+        ctx.strokeStyle = palette.pillBorder;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(curX, footerY - itemH / 2, itemW, itemH);
+        ctx.fillStyle = palette.ink;
+        ctx.fillText(text, curX + (isPortrait ? 10 : 8), footerY);
+        curX += itemW + (isPortrait ? 10 : 8);
+      });
+      ctx.restore();
+    }
+  }
+'''
+          s2, count = footer_pattern.subn(footer, s, count=1)
+          if count != 1:
+              raise SystemExit('Could not replace Minimalistic footer')
+          p.write_text(s2, encoding='utf-8')
+
+      - name: Repair shared role card and remove destructive normalization
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          p = Path('src/components/ThumbnailCanvas.tsx')
+          s = p.read_text(encoding='utf-8')
+
+          # The old shared card was hard-coded to near-white for every non-dark renderer.
+          # That made the Role/Title block painfully bright and visually unrelated to the theme.
+          start = s.index('const renderSpeakerIdentity =')
+          end = s.index('\n\n/** Normalize legacy light Corporate bases', start)
+          role = r'''const renderSpeakerIdentity = (ctx: CanvasRenderingContext2D, width: number, height: number, props: ThumbnailCanvasProps) => {
+  if (!props.showSpeaker) return;
+  const needsName = props.template === 'youtube_bold' || props.template === 'tech_saas';
+  const needsRole = props.template === 'minimalistic' || props.template === 'bohemian' || props.template === 'youtube_bold' || props.template === 'tech_saas';
+  if ((!needsName || !props.speakerName) && (!needsRole || !props.speakerRole)) return;
+
+  const portrait = height > width;
+  const cardW = Math.min(portrait ? width * .82 : 350, width - 48);
+  const cardH = portrait ? 88 : 68;
+  const x = portrait ? (width - cardW) / 2 : width * .58;
+  const y = Math.max(24, height - cardH - (portrait ? 88 : 58));
+  const accent = props.bgStyle === 'crimson' ? '#FB7185' : props.bgStyle === 'emerald' ? '#34D399' : props.bgStyle === 'digital' ? '#22D3EE' : props.bgStyle === 'corporate' ? '#5B9CFF' : props.bgStyle === 'obsidian' ? '#FACC15' : '#818CF8';
+
+  ctx.save();
+  roundRectPath(ctx, x, y, cardW, cardH, 12);
+  ctx.fillStyle = 'rgba(8, 18, 36, 0.92)';
+  ctx.fill();
+  ctx.strokeStyle = `${accent}55`;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = accent;
+  roundRectPath(ctx, x, y, 3, cardH, 2);
+  ctx.fill();
+
+  let cy = y + 15;
+  if (needsName && props.speakerName) {
+    ctx.font = `700 ${portrait ? 21 : 16}px "Plus Jakarta Sans", "Inter", sans-serif`;
+    ctx.fillStyle = '#F8FAFF';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(props.speakerName, x + 17, cy, cardW - 28);
+    cy += portrait ? 29 : 23;
+  }
+  if (needsRole && props.speakerRole) {
+    ctx.font = `600 ${portrait ? 13 : 11}px "Plus Jakarta Sans", "Inter", sans-serif`;
+    ctx.fillStyle = accent;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(props.speakerRole.toUpperCase(), x + 17, cy, cardW - 28);
+  }
+  ctx.restore();
+};'''
+          s = s[:start] + role + s[end:]
+
+          # Corporate is now a deliberately dark theme in every renderer. Do not post-process
+          # the finished pixels: that was the reason dark text stayed dark on the new navy base.
+          block = re.compile(r'\n/\*\* Normalize legacy light Corporate bases[\s\S]*?\n};\n\nconst applyThemeTone')
+          s2, count = block.subn('\nconst applyThemeTone', s, count=1)
+          if count != 1:
+              raise SystemExit('Could not remove legacy Corporate normalization')
+          s2 = s2.replace("\n        if (props.bgStyle === 'corporate') normalizeCorporateBackground(ctx, canvas);", '')
+          p.write_text(s2, encoding='utf-8')
+
+      - name: Validate, commit, and remove one-time workflow
+        shell: bash
+        run: |
+          npm install
+          npm run build
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/canvas src/components/ThumbnailCanvas.tsx
+          git rm .github/workflows/repair-design.yml
+          git commit -m "fix: repair corporate design and role card"
+          git push
