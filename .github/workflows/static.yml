@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -22,13 +22,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Apply theme consistency repair
-        run: node scripts/repair-themes.mjs
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Apply deterministic design repair
+        if: ${{ !startsWith(github.event.head_commit.message, 'fix: repair corporate design') }}
+        shell: bash
+        run: |
+          node scripts/repair-themes.mjs
+          if git diff --quiet; then
+            echo "No design changes needed."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/components/canvas src/components/ThumbnailCanvas.tsx scripts/repair-themes.mjs
+            git commit -m "fix: repair corporate design"
+            git push
+          fi
 
       - name: Install dependencies
         run: npm install
