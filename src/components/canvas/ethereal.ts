@@ -20,7 +20,7 @@ export const renderEthereal = async (
   const palettes = {
     midnight: { bg: '#11111F', panel: '#191A2E', ink: '#FBF8F2', muted: '#C5C0D2', accent: '#D8B4FE', line: 'rgba(216,180,254,.28)' },
     obsidian: { bg: '#11100F', panel: '#211C1A', ink: '#FFF9F1', muted: '#C9B8AA', accent: '#F0B27A', line: 'rgba(240,178,122,.30)' },
-    corporate: { bg: '#E9E3D9', panel: '#F8F4EC', ink: '#1F2933', muted: '#5F6B73', accent: '#8B5E3C', line: 'rgba(70,58,47,.22)' },
+    corporate: { bg: '#081832', panel: '#10264A', ink: '#F8FAFF', muted: '#B8C8E0', accent: '#5B9CFF', line: 'rgba(96,165,250,.28)' },
     emerald: { bg: '#E7EEE7', panel: '#F5F8F2', ink: '#183128', muted: '#557064', accent: '#39735A', line: 'rgba(57,115,90,.25)' },
     crimson: { bg: '#F3E4E3', panel: '#FFF6F4', ink: '#3B1720', muted: '#80545B', accent: '#B83D52', line: 'rgba(184,61,82,.24)' },
     digital: { bg: '#DCE9EC', panel: '#F1F8F9', ink: '#102A31', muted: '#4F727A', accent: '#167C89', line: 'rgba(22,124,137,.25)' },

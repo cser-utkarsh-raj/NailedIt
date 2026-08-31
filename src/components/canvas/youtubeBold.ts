@@ -25,7 +25,7 @@ export const renderYoutubeBold = async (
     emerald: { bg: '#050D0A', text: '#FFFFFF', accent: '#00FF66', blockText: '#000000', glow: '#10B981' },
     digital: { bg: '#050D14', text: '#FFFFFF', accent: '#00F0FF', blockText: '#000000', glow: '#06B6D4' },
     obsidian: { bg: '#0A0A0A', text: '#FFFFFF', accent: '#FFCC00', blockText: '#000000', glow: '#FFFFFF' },
-    corporate: { bg: '#0B1120', text: '#FFFFFF', accent: '#38BDF8', blockText: '#000000', glow: '#2563EB' },
+    corporate: { bg: '#081832', text: '#F8FAFF', accent: '#5B9CFF', blockText: '#07162F', glow: '#2563EB' },
   };
 
   const scheme = accents[props.bgStyle as keyof typeof accents] || accents.midnight;

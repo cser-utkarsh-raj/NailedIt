@@ -25,61 +25,39 @@ const renderSpeakerIdentity = (ctx: CanvasRenderingContext2D, width: number, hei
 
   const portrait = height > width;
   const cardW = Math.min(portrait ? width * .82 : 350, width - 48);
-  const cardH = portrait ? 92 : 76;
+  const cardH = portrait ? 88 : 68;
   const x = portrait ? (width - cardW) / 2 : width * .58;
   const y = Math.max(24, height - cardH - (portrait ? 88 : 58));
-  const dark = props.template === 'youtube_bold' || props.template === 'tech_saas';
-  const accent = props.bgStyle === 'crimson' ? '#FB7185' : props.bgStyle === 'emerald' ? '#34D399' : props.bgStyle === 'digital' ? '#22D3EE' : props.bgStyle === 'corporate' ? '#60A5FA' : props.bgStyle === 'obsidian' ? '#FACC15' : '#818CF8';
+  const accent = props.bgStyle === 'crimson' ? '#FB7185' : props.bgStyle === 'emerald' ? '#34D399' : props.bgStyle === 'digital' ? '#22D3EE' : props.bgStyle === 'corporate' ? '#5B9CFF' : props.bgStyle === 'obsidian' ? '#FACC15' : '#818CF8';
 
   ctx.save();
-  roundRectPath(ctx, x, y, cardW, cardH, 14);
-  ctx.fillStyle = dark ? 'rgba(7,10,18,.84)' : 'rgba(255,255,255,.94)';
+  roundRectPath(ctx, x, y, cardW, cardH, 12);
+  ctx.fillStyle = 'rgba(8, 18, 36, 0.92)';
   ctx.fill();
-  ctx.strokeStyle = `${accent}66`;
-  ctx.lineWidth = 1.25;
+  ctx.strokeStyle = `${accent}55`;
+  ctx.lineWidth = 1;
   ctx.stroke();
   ctx.fillStyle = accent;
-  roundRectPath(ctx, x, y, 4, cardH, 2);
+  roundRectPath(ctx, x, y, 3, cardH, 2);
   ctx.fill();
 
-  let cy = y + 17;
+  let cy = y + 15;
   if (needsName && props.speakerName) {
-    ctx.font = `700 ${portrait ? 22 : 17}px "Plus Jakarta Sans", "Inter", sans-serif`;
-    ctx.fillStyle = dark ? '#FFFFFF' : '#111827';
+    ctx.font = `700 ${portrait ? 21 : 16}px "Plus Jakarta Sans", "Inter", sans-serif`;
+    ctx.fillStyle = '#F8FAFF';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.fillText(props.speakerName, x + 18, cy, cardW - 30);
-    cy += portrait ? 31 : 25;
+    ctx.fillText(props.speakerName, x + 17, cy, cardW - 28);
+    cy += portrait ? 29 : 23;
   }
   if (needsRole && props.speakerRole) {
-    ctx.font = `600 ${portrait ? 15 : 12}px "Plus Jakarta Sans", "Inter", sans-serif`;
+    ctx.font = `600 ${portrait ? 13 : 11}px "Plus Jakarta Sans", "Inter", sans-serif`;
     ctx.fillStyle = accent;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.fillText(props.speakerRole.toUpperCase(), x + 18, cy, cardW - 30);
+    ctx.fillText(props.speakerRole.toUpperCase(), x + 17, cy, cardW - 28);
   }
   ctx.restore();
-};
-
-/** Normalize legacy light Corporate bases to the same dark executive foundation. */
-const normalizeCorporateBackground = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
-  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = image.data;
-  let changed = false;
-
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i], g = data[i + 1], b = data[i + 2];
-    const neutral = Math.max(r, g, b) - Math.min(r, g, b) < 16;
-    if (neutral && r >= 232 && r < 255 && g >= 232 && g < 255 && b >= 232 && b < 255) {
-      const y = Math.floor((i / 4 / canvas.width));
-      const t = y / Math.max(1, canvas.height - 1);
-      data[i] = Math.round(10 + 8 * t);
-      data[i + 1] = Math.round(22 + 18 * t);
-      data[i + 2] = Math.round(42 + 34 * t);
-      changed = true;
-    }
-  }
-  if (changed) ctx.putImageData(image, 0, 0);
 };
 
 const applyThemeTone = (ctx: CanvasRenderingContext2D, width: number, height: number, bgStyle: PostData['bgStyle']) => {
@@ -142,8 +120,6 @@ export const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = (props) => {
           default: await renderProfessional(ctx, width, height, props); break;
         }
         if (renderSeqRef.current !== currentSeq) return;
-
-        if (props.bgStyle === 'corporate') normalizeCorporateBackground(ctx, canvas);
         renderSpeakerIdentity(ctx, width, height, props);
         applyThemeTone(ctx, width, height, props.bgStyle);
 

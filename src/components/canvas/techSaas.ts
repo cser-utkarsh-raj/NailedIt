@@ -26,7 +26,7 @@ export const renderTechSaaS = async (
     emerald: { primary: '#10B981', glow: 'rgba(16, 185, 129, 0.25)', bg: '#06120E' },
     crimson: { primary: '#F43F5E', glow: 'rgba(244, 63, 94, 0.25)', bg: '#120609' },
     obsidian: { primary: '#E2E8F0', glow: 'rgba(255, 255, 255, 0.15)', bg: '#050507' },
-    corporate: { primary: '#38BDF8', glow: 'rgba(56, 189, 248, 0.30)', bg: '#0C1B33' },
+    corporate: { primary: '#5B9CFF', glow: 'rgba(91, 156, 255, 0.24)', bg: '#081832' },
   };
 
   const accentScheme = accents[props.bgStyle as keyof typeof accents] || accents.midnight;

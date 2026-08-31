@@ -47,16 +47,16 @@ export const renderBohemian = async (
     },
     // 3. Corporate: Classic Warm Sand Dune & Earth Clay
     corporate: {
-      background: '#F5EFE6',
-      paper: '#ECE3D4',
-      ink: '#2C2117',
-      muted: '#736050',
-      accent: '#B85D36', // Rich Terracotta Clay
-      accentSoft: '#DFB19B',
-      line: '#B8A492',
-      pillBg: '#FAF5EE',
-      pillBorder: '#B85D36',
-    },
+    background: '#081832',
+    paper: '#10264A',
+    ink: '#F8FAFF',
+    muted: '#B8C8E0',
+    accent: '#5B9CFF',
+    accentSoft: 'rgba(91, 156, 255, 0.16)',
+    line: 'rgba(148, 163, 184, 0.22)',
+    pillBg: 'rgba(91, 156, 255, 0.10)',
+    pillBorder: 'rgba(96, 165, 250, 0.34)',
+  },
     // 4. Emerald: Sage Grove & Forest Botanicals
     emerald: {
       background: '#EAEFE8',

@@ -71,15 +71,15 @@ export const renderMinimalistic = async (
       pillBorder: '#18181B',
     },
     corporate: {
-      bg: '#F8FAFC', // International Typographic Slate
-      cardBg: '#FFFFFF',
-      ink: '#0F172A',
-      muted: '#64748B',
-      line: '#CBD5E1',
-      accent: '#0F172A',
-      pillBg: '#FFFFFF',
-      pillBorder: '#0F172A',
-    },
+    bg: '#081832',
+    cardBg: '#10264A',
+    ink: '#F8FAFF',
+    muted: '#B8C8E0',
+    line: 'rgba(148, 163, 184, 0.22)',
+    accent: '#4F8CFF',
+    pillBg: 'rgba(79, 140, 255, 0.10)',
+    pillBorder: 'rgba(96, 165, 250, 0.34)',
+  },
   };
 
   const palette = palettes[props.bgStyle as keyof typeof palettes] || palettes.obsidian;
@@ -333,41 +333,27 @@ export const renderMinimalistic = async (
       ctx.save();
       const footerY = botY - (isPortrait ? 20 : 12);
       const fontSz = isPortrait ? 16 : 12;
-      ctx.font = `700 ${fontSz}px "Space Grotesk", "Plus Jakarta Sans", monospace`;
-
+      ctx.font = `600 ${fontSz}px "Space Grotesk", "Plus Jakarta Sans", sans-serif`;
+      ctx.fillStyle = palette.muted;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
       let curX = padX + 24;
-      rawLinks.forEach((link, idx) => {
+      rawLinks.forEach((link) => {
         const { label } = getLinkIconAndLabel(link);
-        const indexStr = `[0${idx + 1}]`;
-        const text = `${indexStr} / ${label}`;
-        const metrics = ctx.measureText(text);
-        const itemW = metrics.width + (isPortrait ? 24 : 16);
+        const itemW = ctx.measureText(label).width + (isPortrait ? 24 : 16);
         const itemH = isPortrait ? 32 : 22;
-
-        if (curX + itemW > width - padX - 20 && idx > 0) return;
-
-        // Sharp rectangular Swiss tag
+        if (curX + itemW > width - padX - 20 && curX > padX + 24) return;
         ctx.fillStyle = palette.cardBg;
         ctx.fillRect(curX, footerY - itemH / 2, itemW, itemH);
         ctx.strokeStyle = palette.pillBorder;
         ctx.lineWidth = 1;
         ctx.strokeRect(curX, footerY - itemH / 2, itemW, itemH);
-
-        // Accent index bracket
-        ctx.fillStyle = palette.accent;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(indexStr, curX + (isPortrait ? 10 : 8), footerY);
-
-        // Label
-        const bracketW = ctx.measureText(indexStr + ' ').width;
         ctx.fillStyle = palette.ink;
-        ctx.fillText(`/ ${label}`, curX + (isPortrait ? 10 : 8) + bracketW, footerY);
-
-        curX += itemW + (isPortrait ? 14 : 10);
+        ctx.fillText(label, curX + (isPortrait ? 10 : 8), footerY);
+        curX += itemW + (isPortrait ? 10 : 8);
       });
-
       ctx.restore();
     }
   }
+
 };
