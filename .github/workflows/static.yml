@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -22,7 +22,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Apply source consistency fixes
+      - name: Apply source consistency fixes for build
         shell: bash
         run: |
           python - <<'PY'
@@ -140,19 +140,6 @@ jobs:
                   raise SystemExit(f'Corporate palette not found in {filename}')
               p.write_text(updated, encoding='utf-8')
           PY
-
-      - name: Commit source fixes
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/components/ThumbnailStudioView.tsx src/components/canvas
-          if git diff --cached --quiet; then
-            echo "No source changes to commit."
-          else
-            git commit -m "fix: make shuffle and corporate theme consistent"
-            git push
-          fi
 
       - name: Setup Node
         uses: actions/setup-node@v4
