@@ -47,9 +47,10 @@ const replacements = {
 for (const [file, replacement] of Object.entries(replacements)) {
   const filePath = path.join(canvas, file);
   let source = fs.readFileSync(filePath, 'utf8');
-  const corporatePattern = /^\s*corporate:\s*\{[\s\S]*?^\s*\},/m;
+  // Corporate entries are formatted both as compact one-line objects and multiline objects.
+  const corporatePattern = /corporate\s*:\s*\{[\s\S]*?\},/m;
   if (!corporatePattern.test(source)) throw new Error(`Corporate palette not found in ${file}`);
-  source = source.replace(corporatePattern, `\n${replacement}`);
+  source = source.replace(corporatePattern, replacement);
   fs.writeFileSync(filePath, source);
 }
 
@@ -153,4 +154,4 @@ for (const [file, replacement] of Object.entries(replacements)) {
   fs.writeFileSync(filePath, source);
 }
 
-console.log('Design repair applied: Corporate palettes are dark/readable, Minimalistic footer has no numbering, and Role/Title card is theme-safe.');
+console.log('Design repair applied successfully.');
