@@ -28,7 +28,6 @@ jobs:
           node-version: 20
 
       - name: Apply deterministic design repair
-        if: ${{ !startsWith(github.event.head_commit.message, 'fix: repair corporate design') }}
         shell: bash
         run: |
           node scripts/repair-themes.mjs
