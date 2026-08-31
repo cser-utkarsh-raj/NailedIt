@@ -1,0 +1,322 @@
+                  {[
+                    { id: 'og', label: 'WordPress Blog', sub: '1200 × 630 WebP', icon: Globe },
+                    { id: 'youtube', label: 'YouTube Video', sub: '1280 × 720 (16:9)', icon: Youtube },
+                    { id: 'square', label: 'Square Social', sub: '1080 × 1080', icon: Square }
+                  ].map((fmt) => {
+                    const isSel = (post.aspectRatio || 'og') === fmt.id;
+                    const IconC = fmt.icon;
+                    return (
+                      <button
+                        key={fmt.id}
+                        onClick={() => onUpdatePost({ aspectRatio: fmt.id as AspectRatio })}
+                        className={`p-3 rounded-lg border text-left transition cursor-pointer flex flex-col justify-between ${
+                          isSel
+                            ? 'bg-[#F4F1EA] border-[#D5CDBD] text-stone-900 shadow-inner'
+                            : 'bg-white border-[#EAE4D9] hover:border-[#D5CDBD] text-stone-600'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <IconC className={`w-4 h-4 ${isSel ? 'text-[#8C6E53]' : 'text-stone-400'}`} />
+                          <span className="font-bold text-[11px] leading-tight">{fmt.label}</span>
+                        </div>
+                        <span className={`text-[10px] ${isSel ? 'text-stone-600' : 'text-stone-500'}`}>{fmt.sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Visual Branding Mode */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-stone-500">
+                    Visual Branding Accent:
+                  </label>
+                  <span className="text-[10px] text-[#A98467] font-mono flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" />
+                    Official Watermark Integrated
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'speaker_portrait', label: 'Faculty Portrait', sub: 'Gold-rim avatar' },
+                    { id: 'official_logo', label: 'Official Logo', sub: 'Watermark' },
+                    { id: 'emblem_minimal', label: 'Minimalist Motif', sub: 'Topic emblem' }
+                  ].map((mode) => {
+                    const isSel = (post.visualMode || 'speaker_portrait') === mode.id;
+                    return (
+                      <button
+                        key={mode.id}
+                        onClick={() => onUpdatePost({ visualMode: mode.id as VisualBrandingMode })}
+                        className={`p-3 rounded-lg border text-left transition cursor-pointer flex flex-col justify-between ${
+                          isSel
+                            ? 'bg-[#F4F1EA] border-[#D5CDBD] text-stone-900 shadow-inner'
+                            : 'bg-white border-[#EAE4D9] hover:border-[#D5CDBD] text-stone-600'
+                        }`}
+                      >
+                        <span className="font-bold text-[11px] leading-tight mb-1">{mode.label}</span>
+                        <span className={`text-[10px] ${isSel ? 'text-stone-600' : 'text-stone-500'}`}>{mode.sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Essential Content Box */}
+            <div className="bg-white border border-[#EAE4D9] rounded-xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-[#EAE4D9] pb-3">
+                <span className="text-xs font-bold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sliders className="w-4 h-4 text-stone-400" />
+                  Thumbnail Content & Styling
+                </span>
+              </div>
+
+              {/* Title */}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-stone-500">
+                  Article Title / Headline:
+                </label>
+                <textarea
+                  value={post.title}
+                  onChange={(e) => onUpdatePost({ title: e.target.value })}
+                  rows={2}
+                  className="w-full bg-white border border-[#EAE4D9] rounded-lg p-2.5 text-sm text-stone-900 focus:border-[#A98467] outline-none transition font-medium resize-none"
+                  placeholder="e.g. Types of Charges on Securities in Loan Accounts"
+                />
+              </div>
+
+              {/* Subtitle */}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-stone-500">
+                  Subtitle / Key Takeaway:
+                </label>
+                <input
+                  type="text"
+                  value={post.subtitle || ''}
+                  onChange={(e) => onUpdatePost({ subtitle: e.target.value })}
+                  className="w-full bg-white border border-[#EAE4D9] rounded-lg px-3 py-2 text-sm text-stone-900 focus:border-[#A98467] outline-none transition"
+                  placeholder="e.g. Hypothecation, Pledge, Mortgage, Lien & Assignment"
+                />
+              </div>
+
+              {/* Category */}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-stone-500">
+                  Category Tag Badge:
+                </label>
+                <input
+                  type="text"
+                  value={post.category}
+                  onChange={(e) => onUpdatePost({ category: e.target.value })}
+                  className="w-full bg-white border border-[#EAE4D9] rounded-lg px-3 py-2 text-sm text-stone-900 focus:border-[#A98467] outline-none uppercase transition"
+                  placeholder="e.g. BANKING LAW & CREDIT APPRAISAL"
+                />
+              </div>
+
+              {/* Color Theme & Motif */}
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-stone-500">
+                    Theme Palette:
+                  </label>
+                  <select
+                    value={post.bgStyle}
+                    onChange={(e) => onUpdatePost({ bgStyle: e.target.value as BgStyle })}
+                    className="w-full bg-white border border-[#EAE4D9] rounded-lg px-3 py-2 text-sm text-stone-900 focus:border-[#A98467] outline-none transition"
+                  >
+                    <option value="navy">Navy & Gold (Default)</option>
+                    <option value="rbi">RBI Maroon & Gold</option>
+                    <option value="emerald">Emerald MSME & Growth</option>
+                    <option value="digital">Digital Fintech Cyan</option>
+                    <option value="corporate">Corporate Royal Blue</option>
+                    <option value="dark">Executive Dark</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-stone-500">
+                    Emblem Motif:
+                  </label>
+                  <select
+                    value={post.iconMotif || 'scales'}
+                    onChange={(e) => onUpdatePost({ iconMotif: e.target.value as IconMotif })}
+                    className="w-full bg-white border border-[#EAE4D9] rounded-lg px-3 py-2 text-sm text-stone-900 focus:border-[#A98467] outline-none transition"
+                  >
+                    <option value="scales">⚖️ Scales of Justice</option>
+                    <option value="lock">🔒 Security & Lien</option>
+                    <option value="bank">🏛️ Central Bank Columns</option>
+                    <option value="rupee">₹ Indian Rupee</option>
+                    <option value="shield">🛡️ Regulatory Compliance</option>
+                    <option value="chart">📈 Market Growth</option>
+                    <option value="chip">⚡ Digital & Fintech</option>
+                    <option value="doc">📋 Official Circular</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Speaker Customization (if visualMode === speaker_portrait) */}
+              {post.visualMode === 'speaker_portrait' && (
+                <div className="space-y-3 pt-4 border-t border-[#EAE4D9]">
+                  <label className="text-xs font-semibold text-stone-500">
+                    Faculty Portrait & Bio:
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={post.speakerName || ''}
+                      onChange={(e) => onUpdatePost({ speakerName: e.target.value })}
+                      className="bg-white border border-[#EAE4D9] rounded-lg px-3 py-2 text-sm text-stone-900 focus:border-[#A98467] outline-none transition"
+                      placeholder="e.g. Banking Faculty"
+                    />
+                    <input
+                      type="text"
+                      value={post.speakerRole || ''}
+                      onChange={(e) => onUpdatePost({ speakerRole: e.target.value })}
+                      className="bg-white border border-[#EAE4D9] rounded-lg px-3 py-2 text-sm text-stone-900 focus:border-[#A98467] outline-none transition"
+                      placeholder="e.g. Credit Risk Digest"
+                    />
+                  </div>
+
+                  <div className="pt-1">
+                    <label className="text-xs font-medium text-stone-500 block mb-1.5">
+                      Upload Custom Photo:
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleSpeakerPhotoUpload}
+                      className="text-sm text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#F4F1EA] file:text-[#8C6E53] hover:file:bg-[#EAE4D9] cursor-pointer"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Always show the Logo Watermark upload in both modes, but put it below */}
+              <div className="space-y-3 pt-4 border-t border-[#EAE4D9]">
+                <div className="pt-1">
+                  <label className="text-xs font-medium text-stone-500 block mb-1.5">
+                    Upload Custom Logo (Watermark):
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="text-sm text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#F4F1EA] file:text-[#8C6E53] hover:file:bg-[#EAE4D9] cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Key Pills Bar */}
+              <div className="space-y-1.5 pt-4 border-t border-[#EAE4D9]">
+                <label className="text-xs font-semibold text-stone-500">
+                  Topic Micro-Pills (Separated by • or comma):
+                </label>
+                <input
+                  type="text"
+                  value={post.keyPills || ''}
+                  onChange={(e) => onUpdatePost({ keyPills: e.target.value, showKeyPills: true })}
+                  className="w-full bg-white border border-[#EAE4D9] rounded-lg px-3 py-2 text-sm text-stone-900 focus:border-[#A98467] outline-none transition"
+                  placeholder="HYPOTHECATION • PLEDGE • MORTGAGE • LIEN"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Live High-Resolution Canvas & Actions */}
+          <div className="lg:col-span-7 space-y-4">
+            <div className="bg-white border border-[#EAE4D9] rounded-xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-[#EAE4D9] pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#A98467] animate-pulse" />
+                  <h2 className="text-xs font-bold text-stone-800 uppercase tracking-wider">
+                    Canvas Preview
+                  </h2>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-stone-500">
+                  <span>Format:</span>
+                  <span className="font-mono text-stone-900 font-bold uppercase">
+                    {post.aspectRatio === 'youtube' ? 'YouTube 16:9' : post.aspectRatio === 'square' ? 'Square 1:1' : 'WebP'}
+                  </span>
+                </div>
+              </div>
+
+              {/* The Live Canvas */}
+              <div className="w-full bg-[#FAF8F5] rounded-lg overflow-hidden border border-[#EAE4D9]">
+                <ThumbnailCanvas
+                  title={post.title}
+                  subtitle={post.subtitle}
+                  category={post.category}
+                  bgStyle={post.bgStyle}
+                  iconMotif={post.iconMotif}
+                  aspectRatio={post.aspectRatio}
+                  visualMode={post.visualMode || 'speaker_portrait'}
+                  brandName={post.brandName}
+                  siteUrl={post.siteUrl}
+                  customOverlayImage={post.customBgUrl}
+                  speakerName={post.speakerName}
+                  speakerRole={post.speakerRole}
+                  speakerImageUrl={post.speakerImageUrl}
+                  logoImageUrl={post.logoImageUrl}
+                  showSpeaker={post.visualMode === 'speaker_portrait'}
+                  keyPills={post.keyPills}
+                  showKeyPills={post.showKeyPills}
+                  onExportReady={(pngUrl, webpUrl, sizeKb) => {
+                    setCanvasPngUrl(pngUrl);
+                    if (webpUrl) setCanvasWebpUrl(webpUrl);
+                    if (sizeKb) setWebpSizeKb(sizeKb);
+                  }}
+                  key={`studio-canvas-${refreshKey}`}
+                />
+              </div>
+
+              {/* Action Buttons Toolbar */}
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <button
+                  onClick={handleDownloadWebP}
+                  className="flex-1 px-4 py-2.5 bg-[#8C6E53] hover:bg-[#735A43] text-white text-sm font-bold rounded-lg transition flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download WebP ({webpSizeKb} KB)</span>
+                </button>
+
+                <button
+                  onClick={handleDownloadPng}
+                  className="px-4 py-2.5 bg-white hover:bg-[#FAF8F5] text-stone-700 text-sm font-semibold rounded-lg border border-[#EAE4D9] transition flex items-center gap-1.5"
+                >
+                  <Download className="w-4 h-4 text-stone-400" />
+                  <span>PNG</span>
+                </button>
+
+                <button
+                  onClick={handleCopyImage}
+                  className="px-4 py-2.5 bg-white hover:bg-[#FAF8F5] text-stone-700 text-sm font-semibold rounded-lg border border-[#EAE4D9] transition flex items-center gap-1.5"
+                >
+                  {copiedNotification ? (
+                    <>
+                      <Check className="w-4 h-4 text-[#A98467]" />
+                      <span className="text-[#A98467]">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 text-stone-400" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setRefreshKey((k) => k + 1)}
+                  className="p-2.5 bg-white hover:bg-[#FAF8F5] text-stone-500 rounded-lg border border-[#EAE4D9] transition"
+                  title="Re-render Canvas"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

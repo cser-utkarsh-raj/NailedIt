@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .inset-shadow {
+    box-shadow: inset 2px 2px 0px 0px #000000, inset -2px -2px 0px 0px #ffffff;
+  }
+}

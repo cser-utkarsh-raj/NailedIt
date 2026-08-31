@@ -1,0 +1,300 @@
+import React, { useState } from 'react';
+import { 
+  Sparkles, 
+  Download, 
+  RefreshCw, 
+  Check, 
+  Sliders, 
+  Layers, 
+  UserCheck, 
+  Tag, 
+  Image as ImageIcon,
+  Copy,
+  ExternalLink,
+  ShieldCheck,
+  Eye,
+  Zap,
+  Youtube,
+  Globe,
+  Square
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
+import { AspectRatio, BgStyle, IconMotif, PostData, VisualBrandingMode } from '../types';
+import { ThumbnailCanvas } from './ThumbnailCanvas';
+import { analyzeHeading } from '../utils/smartTopicAnalyzer';
+
+interface ThumbnailStudioViewProps {
+  post: PostData;
+  onUpdatePost: (updates: Partial<PostData>) => void;
+}
+
+export const TOPIC_PRESETS = [
+  {
+    name: 'Types of Charges on Securities',
+    title: 'Types of Charges on Securities in Loan Accounts',
+    subtitle: 'Hypothecation, Pledge, Mortgage, Lien & Assignment',
+    category: 'BANKING LAW & CREDIT APPRAISAL',
+    style: 'navy' as BgStyle,
+    icon: 'scales' as IconMotif,
+    visualMode: 'speaker_portrait' as VisualBrandingMode,
+    showSpeaker: true,
+    speakerName: 'Banking Faculty',
+    speakerRole: 'Credit Risk & Legal Digest',
+    showKeyPills: true,
+    keyPills: 'HYPOTHECATION • PLEDGE • MORTGAGE • LIEN • ASSIGNMENT'
+  },
+  {
+    name: 'RBI Master Direction on Lending',
+    title: 'RBI Master Direction on Credit & Lending Norms',
+    subtitle: 'Operational Guidelines, Risk Categorization & Circular Analysis',
+    category: 'RBI CIRCULARS & GUIDELINES',
+    style: 'rbi' as BgStyle,
+    icon: 'shield' as IconMotif,
+    visualMode: 'official_logo' as VisualBrandingMode,
+    showSpeaker: false,
+    showKeyPills: true,
+    keyPills: 'PRUDENTIAL NORMS • SMA / NPA • LARGE EXPOSURES'
+  },
+  {
+    name: 'MSME & Priority Sector',
+    title: 'MSME Policy & Priority Sector Lending Norms',
+    subtitle: 'Credit Appraisal, Subsidies & Classification Criteria',
+    category: 'MSME & GOVT SCHEMES',
+    style: 'emerald' as BgStyle,
+    icon: 'chart' as IconMotif,
+    visualMode: 'speaker_portrait' as VisualBrandingMode,
+    showSpeaker: true,
+    speakerName: 'Dr. R. K. Sharma',
+    speakerRole: 'Chief Advisor, MSME Cell',
+    showKeyPills: true,
+    keyPills: 'CGTMSE • RESTRUCTURE • CLUSTER FINANCING'
+  },
+  {
+    name: 'Bank Guarantee & Indemnity',
+    title: 'Bank Guarantee and Indemnity Contract',
+    subtitle: 'Legal Framework, Invocation Rules & Supreme Court Precedents',
+    category: 'BANKING LAW & PRACTICE',
+    style: 'navy' as BgStyle,
+    icon: 'bank' as IconMotif,
+    visualMode: 'official_logo' as VisualBrandingMode,
+    showSpeaker: false,
+    showKeyPills: true,
+    keyPills: 'PERFORMANCE BG • FINANCIAL BG • INJUNCTION NORMS'
+  },
+  {
+    name: 'Digital Banking & Cyber Security',
+    title: 'Core Banking Solutions & 24x7 Digital Banking',
+    subtitle: 'API Banking, UPI Interoperability & Cyber Risk Defense',
+    category: 'DIGITAL BANKING & FINTECH',
+    style: 'digital' as BgStyle,
+    icon: 'chip' as IconMotif,
+    visualMode: 'speaker_portrait' as VisualBrandingMode,
+    showSpeaker: true,
+    speakerName: 'Fintech Faculty',
+    speakerRole: 'Cyber Resilience Lead',
+    showKeyPills: true,
+    keyPills: 'API GATEWAY • ZERO TRUST • FRAUD MONITORING'
+  }
+];
+
+export const ThumbnailStudioView: React.FC<ThumbnailStudioViewProps> = ({
+  post,
+  onUpdatePost
+}) => {
+  const [canvasPngUrl, setCanvasPngUrl] = useState<string | null>(null);
+  const [canvasWebpUrl, setCanvasWebpUrl] = useState<string | null>(null);
+  const [webpSizeKb, setWebpSizeKb] = useState<number>(38);
+  const [copiedNotification, setCopiedNotification] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [magicHeadingInput, setMagicHeadingInput] = useState('');
+
+  const handleMagicAnalyze = () => {
+    if (!magicHeadingInput.trim()) return;
+    const analyzed = analyzeHeading(magicHeadingInput);
+    onUpdatePost({
+      title: magicHeadingInput,
+      category: analyzed.category,
+      subtitle: analyzed.subtitle,
+      bgStyle: analyzed.bgStyle,
+      iconMotif: analyzed.iconMotif,
+      showKeyPills: true,
+      keyPills: analyzed.keyPills,
+      speakerImageUrl: null, // Reset to null or keep previous
+      visualMode: post.visualMode || 'speaker_portrait'
+    });
+    setMagicHeadingInput('');
+    confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
+  };
+
+  const handleSpeakerPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      onUpdatePost({
+        speakerImageUrl: ev.target?.result as string,
+        visualMode: 'speaker_portrait'
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      onUpdatePost({
+        logoImageUrl: ev.target?.result as string,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDownloadWebP = () => {
+    const url = canvasWebpUrl || canvasPngUrl;
+    if (!url) return;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bankingdigests-${(post.title || 'thumbnail').toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 30)}.webp`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    confetti({ particleCount: 40, spread: 60, origin: { y: 0.8 } });
+  };
+
+  const handleDownloadPng = () => {
+    if (!canvasPngUrl) return;
+    const a = document.createElement('a');
+    a.href = canvasPngUrl;
+    a.download = `bankingdigests-${(post.title || 'thumbnail').toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 30)}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    confetti({ particleCount: 30, spread: 50 });
+  };
+
+  const handleCopyImage = async () => {
+    const url = canvasPngUrl;
+    if (!url) return;
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blob })
+      ]);
+      setCopiedNotification(true);
+      setTimeout(() => setCopiedNotification(false), 2000);
+    } catch {
+      // Fallback
+    }
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto bg-transparent text-stone-900 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Magic 1-Click Heading Input Bar */}
+        <div className="bg-white border border-[#EAE4D9] rounded-xl p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-[#A98467]" />
+              <h2 className="text-sm font-bold text-stone-800 uppercase tracking-wider">
+                Magic Thumbnail Generator
+              </h2>
+            </div>
+            <span className="text-[11px] bg-stone-100 border border-[#EAE4D9] text-stone-600 px-2.5 py-0.5 rounded-full font-semibold">
+              Enter post heading
+            </span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              value={magicHeadingInput}
+              onChange={(e) => setMagicHeadingInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleMagicAnalyze()}
+              placeholder="e.g. 'SARFAESI Act and Recovery of NPA Accounts by Banks'..."
+              className="flex-1 bg-white border border-[#EAE4D9] rounded-lg px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:border-[#A98467] outline-none transition"
+            />
+            <button
+              onClick={handleMagicAnalyze}
+              disabled={!magicHeadingInput.trim()}
+              className="px-6 py-3 bg-[#8C6E53] hover:bg-[#735A43] disabled:opacity-50 text-white text-sm font-bold rounded-lg transition flex items-center justify-center gap-2 shrink-0"
+            >
+              <Zap className="w-4 h-4" />
+              <span>Auto-Generate</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Top Topic Presets Bar */}
+        <div className="bg-white border border-[#EAE4D9] rounded-xl p-4 shadow-sm space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">
+                Curated Presets
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+            {TOPIC_PRESETS.map((preset, idx) => {
+              const isSelected = post.title === preset.title;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    onUpdatePost({
+                      title: preset.title,
+                      subtitle: preset.subtitle,
+                      category: preset.category,
+                      bgStyle: preset.style,
+                      iconMotif: preset.icon,
+                      visualMode: preset.visualMode,
+                      showSpeaker: preset.showSpeaker ?? false,
+                      speakerName: preset.speakerName ?? 'Banking Faculty',
+                      speakerRole: preset.speakerRole ?? 'Credit Risk & Legal Digest',
+                      showKeyPills: preset.showKeyPills ?? false,
+                      keyPills: preset.keyPills ?? ''
+                    });
+                  }}
+                  className={`p-2.5 text-left rounded-lg border text-xs transition cursor-pointer flex flex-col justify-between ${
+                    isSelected
+                      ? 'bg-stone-100 border-[#D5CDBD] text-stone-900 font-semibold'
+                      : 'bg-white border-[#EAE4D9] hover:bg-stone-50 text-stone-600'
+                  }`}
+                >
+                  <span className="font-bold text-[11px] line-clamp-1 block mb-1">
+                    {preset.name}
+                  </span>
+                  <span className="text-[10px] text-stone-500 line-clamp-1">
+                    {preset.category}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Studio Grid: Controls on Left, Live Canvas on Right */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Controls Column */}
+          <div className="lg:col-span-5 space-y-4">
+            {/* Format & Visual Branding Selector */}
+            <div className="bg-white border border-[#EAE4D9] rounded-xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-[#EAE4D9] pb-3">
+                <span className="text-xs font-bold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sliders className="w-4 h-4 text-stone-400" />
+                  Format & Layout Target
+                </span>
+                <span className="text-[10px] bg-stone-100 text-stone-500 px-2 py-0.5 rounded font-mono">
+                  Multi-Channel
+                </span>
+              </div>
+
+              {/* Aspect Ratio Selector */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-stone-500">
+                  Export Target:
+                </label>
+                <div className="grid grid-cols-3 gap-2">
