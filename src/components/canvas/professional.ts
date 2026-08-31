@@ -1,148 +1,439 @@
 import { CanvasTemplateProps } from '../../types';
-import { loadImage, wrapText, drawContainImage, drawCoverImage } from '../../utils/canvasUtils';
+import {
+  loadImage,
+  wrapText,
+  drawContainImage,
+  drawCoverImage,
+  roundRectPath,
+  drawLetterSpacedText,
+  clamp,
+  Rect,
+  getLinkIconAndLabel,
+} from '../../utils/canvasUtils';
 
-export const renderProfessional = async (ctx: CanvasRenderingContext2D, width: number, height: number, props: CanvasTemplateProps) => {
+export const renderProfessional = async (
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  props: CanvasTemplateProps
+) => {
   const isPortrait = height > width;
 
-  const gradient = ctx.createLinearGradient(0, 0, width, height);
-  if (props.bgStyle === 'midnight') {
-    gradient.addColorStop(0, '#0f172a'); gradient.addColorStop(1, '#1e3a8a');
-  } else if (props.bgStyle === 'crimson') {
-    gradient.addColorStop(0, '#4a0404'); gradient.addColorStop(1, '#7f1d1d');
-  } else if (props.bgStyle === 'obsidian') {
-    gradient.addColorStop(0, '#0a0a0a'); gradient.addColorStop(1, '#171717');
-  } else {
-    gradient.addColorStop(0, '#111827'); gradient.addColorStop(1, '#374151');
-  }
-  ctx.fillStyle = gradient;
+  // 1. EXECUTIVE COLOR PALETTE
+  const palettes = {
+    midnight: {
+      bgTop: '#090D16',
+      bgBottom: '#0F172A',
+      cardBg: 'rgba(15, 23, 42, 0.75)',
+      cardBorder: 'rgba(255, 255, 255, 0.10)',
+      ink: '#FFFFFF',
+      muted: '#94A3B8',
+      accent: '#38BDF8', // Executive Cyan/Sky
+      accentSoft: 'rgba(56, 189, 248, 0.14)',
+      pillBg: 'rgba(255, 255, 255, 0.05)',
+      pillBorder: 'rgba(255, 255, 255, 0.12)',
+      gold: '#F59E0B',
+    },
+    corporate: {
+      bgTop: '#F8FAFC',
+      bgBottom: '#EEF2F6',
+      cardBg: '#FFFFFF',
+      cardBorder: 'rgba(15, 23, 42, 0.08)',
+      ink: '#0F172A',
+      muted: '#475569',
+      accent: '#2563EB', // Trust Royal Blue
+      accentSoft: 'rgba(37, 99, 235, 0.08)',
+      pillBg: '#F1F5F9',
+      pillBorder: '#CBD5E1',
+      gold: '#D97706',
+    },
+    obsidian: {
+      bgTop: '#09090B',
+      bgBottom: '#18181B',
+      cardBg: 'rgba(24, 24, 27, 0.80)',
+      cardBorder: 'rgba(255, 255, 255, 0.09)',
+      ink: '#FAFAFA',
+      muted: '#A1A1AA',
+      accent: '#F4F4F5',
+      accentSoft: 'rgba(255, 255, 255, 0.10)',
+      pillBg: 'rgba(255, 255, 255, 0.06)',
+      pillBorder: 'rgba(255, 255, 255, 0.12)',
+      gold: '#FBBF24',
+    },
+    emerald: {
+      bgTop: '#051A14',
+      bgBottom: '#0D2E24',
+      cardBg: 'rgba(13, 46, 36, 0.80)',
+      cardBorder: 'rgba(52, 211, 153, 0.15)',
+      ink: '#ECFDF5',
+      muted: '#A7F3D0',
+      accent: '#34D399',
+      accentSoft: 'rgba(52, 211, 153, 0.15)',
+      pillBg: 'rgba(255, 255, 255, 0.06)',
+      pillBorder: 'rgba(52, 211, 153, 0.20)',
+      gold: '#F59E0B',
+    },
+    crimson: {
+      bgTop: '#1A080C',
+      bgBottom: '#2D0D15',
+      cardBg: 'rgba(45, 13, 21, 0.80)',
+      cardBorder: 'rgba(251, 113, 133, 0.15)',
+      ink: '#FFF1F2',
+      muted: '#FECDD3',
+      accent: '#FB7185',
+      accentSoft: 'rgba(251, 113, 133, 0.15)',
+      pillBg: 'rgba(255, 255, 255, 0.06)',
+      pillBorder: 'rgba(251, 113, 133, 0.20)',
+      gold: '#F43F5E',
+    },
+    digital: {
+      bgTop: '#060E1A',
+      bgBottom: '#0C1E36',
+      cardBg: 'rgba(12, 30, 54, 0.80)',
+      cardBorder: 'rgba(56, 189, 248, 0.15)',
+      ink: '#F0F9FF',
+      muted: '#BAE6FD',
+      accent: '#0284C7',
+      accentSoft: 'rgba(2, 132, 199, 0.18)',
+      pillBg: 'rgba(255, 255, 255, 0.06)',
+      pillBorder: 'rgba(56, 189, 248, 0.20)',
+      gold: '#38BDF8',
+    },
+  };
+
+  const palette = palettes[props.bgStyle as keyof typeof palettes] || palettes.midnight;
+
+  // 2. BACKGROUND RENDERING
+  ctx.clearRect(0, 0, width, height);
+
+  const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+  bgGrad.addColorStop(0, palette.bgTop);
+  bgGrad.addColorStop(1, palette.bgBottom);
+  ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, width, height);
 
-  ctx.fillStyle = 'rgba(255,255,255,0.03)';
-  ctx.beginPath();
+  // Soft executive directional glow
+  const glowGrad = ctx.createRadialGradient(
+    isPortrait ? width * 0.5 : width * 0.82,
+    isPortrait ? height * 0.25 : height * 0.35,
+    0,
+    isPortrait ? width * 0.5 : width * 0.82,
+    isPortrait ? height * 0.25 : height * 0.35,
+    Math.max(width, height) * 0.65
+  );
+  glowGrad.addColorStop(0, palette.accentSoft);
+  glowGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = glowGrad;
+  ctx.fillRect(0, 0, width, height);
+
+  // Subtle architectural hairline grid
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+  ctx.lineWidth = 1;
+  const gridStep = Math.min(width, height) * 0.14;
+  for (let x = 0; x < width; x += gridStep) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+
+  // 3. LAYOUT REGIONS
+  const outerPad = Math.max(34, Math.min(width, height) * (isPortrait ? 0.05 : 0.06));
+
+  let textRegion: Rect;
+  let imageRegion: Rect;
+
   if (isPortrait) {
-    ctx.moveTo(0, height * 0.4); ctx.lineTo(width, height * 0.4); ctx.lineTo(width, height); ctx.lineTo(0, height);
+    textRegion = {
+      x: outerPad,
+      y: outerPad + 20,
+      w: width - outerPad * 2,
+      h: height * 0.44,
+    };
+    imageRegion = {
+      x: outerPad,
+      y: height * 0.49,
+      w: width - outerPad * 2,
+      h: height * 0.44,
+    };
   } else {
-    ctx.moveTo(width, 0); ctx.lineTo(width, height); ctx.lineTo(width * 0.5, height);
-  }
-  ctx.fill();
-
-  const textRegion = isPortrait 
-    ? { x: 40 + (props.textX || 0), y: 40 + (props.textY || 0), w: width - 80, h: height * 0.5 - 40 }
-    : { x: 60 + (props.textX || 0), y: 60 + (props.textY || 0), w: width * 0.55 - 60, h: height - 120 };
-
-  const imageRegion = isPortrait
-    ? { x: 0, y: height * 0.5, w: width, h: height * 0.5 }
-    : { x: width * 0.55, y: 0, w: width * 0.45, h: height };
-
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  let currentY = textRegion.y;
-  const tScale = props.textScale || 1;
-
-  let logoOffset = 0;
-  if (props.logoImageUrl) {
-    try {
-      const logo = await loadImage(props.logoImageUrl);
-      const lScale = props.logoScale || 1;
-      const lx = props.logoX || 0;
-      const ly = props.logoY || 0;
-      // manual drawing to apply transforms
-      ctx.save();
-      ctx.translate(textRegion.x + lx + (140 * lScale) / 2, currentY + ly + (140 * lScale) / 2);
-      ctx.scale(lScale, lScale);
-      drawContainImage(ctx, logo, -70, -70, 140, 140, 'center', 'center');
-      ctx.restore();
-      logoOffset = 160 * lScale;
-    } catch (e) {}
-  }
-  
-  if (props.brandName) {
-    ctx.fillStyle = '#f59e0b';
-    ctx.font = 'bold ' + (28 * tScale) + 'px sans-serif';
-    ctx.fillText(props.brandName.toUpperCase(), textRegion.x + logoOffset, currentY + (logoOffset ? 55 * (props.logoScale || 1) : 0));
+    textRegion = {
+      x: outerPad,
+      y: outerPad,
+      w: width * 0.53,
+      h: height - outerPad * 2,
+    };
+    imageRegion = {
+      x: width * 0.57,
+      y: outerPad,
+      w: width * 0.37,
+      h: height - outerPad * 2,
+    };
   }
 
-  currentY += (logoOffset ? 160 * (props.logoScale || 1) : 50 * tScale);
-
-  if (props.category) {
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold ' + (24 * tScale) + 'px sans-serif';
-    ctx.fillText(props.category.toUpperCase(), textRegion.x, currentY);
-    currentY += 40 * tScale;
-  }
-
-  ctx.fillStyle = '#ffffff';
-  let titleFontSize = isPortrait ? 70 : 80;
-  if (props.title.length > 30) titleFontSize = isPortrait ? 55 : 65;
-  titleFontSize *= tScale;
-  
-  ctx.font = 'bold ' + titleFontSize + 'px serif';
-  currentY = wrapText(ctx, props.title || '', textRegion.x, currentY, textRegion.w, titleFontSize * 1.15) + 20 * tScale;
-
-  if (props.subtitle) {
-    ctx.fillStyle = '#9ca3af';
-    ctx.font = (36 * tScale) + 'px sans-serif';
-    currentY = wrapText(ctx, props.subtitle, textRegion.x, currentY, textRegion.w, 46 * tScale) + 30 * tScale;
-  }
-
+  // 4. SPEAKER SECTION (Executive Frosted Card)
   if (props.showSpeaker && props.speakerImageUrl) {
     try {
       const speaker = await loadImage(props.speakerImageUrl);
-      const sScale = props.speakerScale || 1;
+      const sScale = clamp(props.speakerScale || 1, 0.5, 3);
       const sx = props.speakerX || 0;
       const sy = props.speakerY || 0;
-      
-      const r = isPortrait ? width * 0.35 : imageRegion.w * 0.35; 
-      const cx = imageRegion.x + imageRegion.w / 2;
-      const cy = imageRegion.y + imageRegion.h / 2 - (isPortrait ? r * 0.5 : 0);
-      
+
+      const cardW = imageRegion.w;
+      const cardH = imageRegion.h;
+      const cardX = imageRegion.x;
+      const cardY = imageRegion.y;
+      const radius = isPortrait ? 24 : 18;
+
+      // Executive Card Container
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.clip();
-      ctx.translate(cx + sx, cy + sy);
-      ctx.scale(sScale, sScale);
-      drawCoverImage(ctx, speaker, -r, -r, r * 2, r * 2, 'center', 'center');
-      ctx.restore();
-      
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.strokeStyle = '#f59e0b';
-      ctx.lineWidth = 8;
+      roundRectPath(ctx, cardX, cardY, cardW, cardH, radius);
+      ctx.fillStyle = palette.cardBg;
+      ctx.fill();
+      ctx.strokeStyle = palette.cardBorder;
+      ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 28px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(props.speakerName || '', cx, cy + r + 25);
-      ctx.fillStyle = '#f59e0b';
-      ctx.font = '22px sans-serif';
-      ctx.fillText(props.speakerRole || '', cx, cy + r + 60);
-    } catch (e) {}
+      // Top subtle accent bar
+      ctx.fillStyle = palette.accent;
+      roundRectPath(ctx, cardX + cardW * 0.2, cardY, cardW * 0.6, isPortrait ? 4 : 3, 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Portrait Image Viewport
+      const photoPad = Math.max(14, cardW * 0.035);
+      const photoW = cardW - photoPad * 2;
+      const photoH = isPortrait ? cardH * 0.74 : cardH * 0.72;
+      const photoX = cardX + photoPad;
+      const photoY = cardY + photoPad;
+      const photoRadius = isPortrait ? 18 : 14;
+
+      ctx.save();
+      roundRectPath(ctx, photoX, photoY, photoW, photoH, photoRadius);
+      ctx.clip();
+
+      const cx = photoX + photoW / 2;
+      const cy = photoY + photoH / 2;
+      ctx.translate(cx + sx, cy + sy);
+      ctx.scale(sScale, sScale);
+      drawCoverImage(ctx, speaker, -photoW / 2, -photoH / 2, photoW, photoH, 'center', 'smart');
+      ctx.restore();
+
+      // Inner stroke on photo
+      ctx.save();
+      roundRectPath(ctx, photoX, photoY, photoW, photoH, photoRadius);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+
+      // Speaker Name & Role
+      const infoY = photoY + photoH + (isPortrait ? 16 : 12);
+      if (props.speakerName) {
+        ctx.font = `700 ${isPortrait ? 24 : Math.max(16, cardW * 0.052)}px "Plus Jakarta Sans", "Inter", sans-serif`;
+        ctx.fillStyle = palette.ink;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(props.speakerName, cardX + cardW / 2, infoY);
+      }
+      if (props.speakerRole) {
+        ctx.font = `600 ${isPortrait ? 16 : Math.max(12, cardW * 0.036)}px "Plus Jakarta Sans", "Inter", sans-serif`;
+        ctx.fillStyle = palette.accent;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(props.speakerRole.toUpperCase(), cardX + cardW / 2, infoY + (isPortrait ? 30 : Math.max(22, cardW * 0.065)));
+      }
+    } catch {}
   }
 
-  if (props.showKeyPills && props.keyPills) {
-    const pills = props.keyPills.split(/[,•]/).map((p: string) => p.trim()).filter(Boolean);
-    let px = textRegion.x;
-    let py = currentY + 10 * tScale;
-    
-    ctx.textAlign = 'left';
+  // 5. INDEPENDENT LOGO LAYER
+  if (props.logoImageUrl) {
+    try {
+      const logo = await loadImage(props.logoImageUrl);
+      const logoScale = clamp(props.logoScale || 1, 0.5, 3);
+      const logoSize = Math.min(80, width * 0.15);
+      const lx = props.logoX || 0;
+      const ly = props.logoY || 0;
+
+      const baseLogoX = outerPad;
+      const baseLogoY = outerPad;
+
+      ctx.save();
+      drawContainImage(
+        ctx,
+        logo,
+        baseLogoX + lx,
+        baseLogoY + ly,
+        logoSize * logoScale,
+        logoSize * logoScale,
+        'left',
+        'top'
+      );
+      ctx.restore();
+    } catch {}
+  }
+
+  // 6. INDEPENDENT TEXT CONTENT BLOCK
+  const textScale = clamp(props.textScale || 1, 0.6, 2);
+  const textOffsetX = props.textX || 0;
+  const textOffsetY = props.textY || 0;
+
+  ctx.save();
+  const textOriginX = textRegion.x + textOffsetX;
+  const textOriginY = textRegion.y + textOffsetY;
+  ctx.translate(textOriginX, textOriginY);
+  ctx.scale(textScale, textScale);
+
+  let curY = 0;
+
+  if (props.brandName) {
+    const brandSize = isPortrait ? 20 : Math.max(13, 15 * textScale);
+    ctx.font = `800 ${brandSize}px "Plus Jakarta Sans", "Inter", sans-serif`;
+    ctx.fillStyle = palette.accent;
+    ctx.textBaseline = 'top';
+    drawLetterSpacedText(ctx, props.brandName.toUpperCase(), 0, curY, (isPortrait ? 4 : 3.5) * textScale, 'left');
+    curY += (isPortrait ? 34 : 28) * textScale;
+  }
+
+  // Category Tag (Executive Sleek Capsule)
+  if (props.category) {
+    const catText = props.category.toUpperCase().trim();
+    const catFontSize = isPortrait ? 18 : Math.max(12, 13 * textScale);
+    ctx.font = `700 ${catFontSize}px "Plus Jakarta Sans", "Inter", sans-serif`;
+    const catWidth = ctx.measureText(catText).width + (isPortrait ? 32 : 24) * textScale;
+    const catHeight = (isPortrait ? 36 : 26) * textScale;
+
+    ctx.save();
+    roundRectPath(ctx, 0, curY, catWidth, catHeight, isPortrait ? 8 : 6);
+    ctx.fillStyle = palette.accentSoft;
+    ctx.fill();
+    ctx.strokeStyle = palette.accent;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = palette.accent;
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    
-    pills.forEach((pill: string) => {
-      ctx.font = 'bold ' + (18 * tScale) + 'px sans-serif';
-      const m = ctx.measureText(pill);
-      if (px + m.width + 40 * tScale > textRegion.x + textRegion.w) {
-        px = textRegion.x;
-        py += 50 * tScale;
+    ctx.fillText(catText, catWidth / 2, curY + catHeight / 2 + 0.5);
+    ctx.restore();
+
+    curY += catHeight + (isPortrait ? 28 : 22) * textScale;
+  }
+
+  // Main Title (Elite Plus Jakarta Sans 800 ExtraBold)
+  const titleLength = props.title?.length || 0;
+  let titleSize = isPortrait ? 80 : 62;
+  if (titleLength > 30) titleSize *= 0.88;
+  if (titleLength > 50) titleSize *= 0.78;
+  titleSize = clamp(titleSize, isPortrait ? 46 : 34, isPortrait ? 100 : 76);
+
+  ctx.font = `800 ${titleSize}px "Plus Jakarta Sans", "Inter", sans-serif`;
+  ctx.fillStyle = palette.ink;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+
+  curY = wrapText(ctx, props.title || '', 0, curY, textRegion.w, titleSize * 1.16, 4) + (isPortrait ? 24 : 16) * textScale;
+
+  // Subtitle
+  if (props.subtitle) {
+    const subSize = isPortrait ? 30 : Math.max(16, 22 * textScale);
+    ctx.font = `400 ${subSize}px "Inter", sans-serif`;
+    ctx.fillStyle = palette.muted;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    curY = wrapText(ctx, props.subtitle, 0, curY, textRegion.w, (isPortrait ? 42 : 32) * textScale, 3) + (isPortrait ? 30 : 24) * textScale;
+  }
+
+  // Keyword Pills (Clean Corporate Badges)
+  if (props.showKeyPills && props.keyPills) {
+    const pills = props.keyPills
+      .split(/[,•]/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .slice(0, 5);
+
+    const pillFont = isPortrait ? 18 : Math.max(12, 13 * textScale);
+    ctx.font = `600 ${pillFont}px "Plus Jakarta Sans", "Inter", sans-serif`;
+    const pillH = (isPortrait ? 38 : 28) * textScale;
+    const gapX = (isPortrait ? 12 : 10) * textScale;
+    const gapY = (isPortrait ? 12 : 10) * textScale;
+
+    let px = 0;
+    let py = curY + 6;
+
+    pills.forEach((pill) => {
+      const metrics = ctx.measureText(pill);
+      const pillW = metrics.width + (isPortrait ? 34 : 24) * textScale;
+
+      if (px + pillW > textRegion.w && px > 0) {
+        px = 0;
+        py += pillH + gapY;
       }
-      ctx.fillStyle = '#1e293b';
-      ctx.beginPath();
-      ctx.roundRect(px, py - 20 * tScale, m.width + 32 * tScale, 40 * tScale, 20 * tScale);
+
+      ctx.save();
+      roundRectPath(ctx, px, py, pillW, pillH, isPortrait ? 8 : 6);
+      ctx.fillStyle = palette.pillBg;
       ctx.fill();
-      ctx.fillStyle = '#f59e0b';
-      ctx.fillText(pill, px + 16 * tScale, py);
-      px += m.width + 48 * tScale;
+      ctx.strokeStyle = palette.pillBorder;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = palette.ink;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(pill, px + pillW / 2, py + pillH / 2);
+      ctx.restore();
+
+      px += pillW + gapX;
     });
+  }
+
+  ctx.restore();
+
+  // --- 8. EXECUTIVE FOOTER LINKS BAR ---
+  if (props.showFooterLinks !== false && props.footerLinks && props.footerLinks.length > 0) {
+    const rawLinks = props.footerLinks.slice(0, 4).filter(Boolean);
+    if (rawLinks.length > 0) {
+      ctx.save();
+      const footerY = isPortrait ? height - outerPad - 16 : height - outerPad - 6;
+      const fontSz = isPortrait ? 18 : 13;
+      ctx.font = `600 ${fontSz}px "Plus Jakarta Sans", "Inter", sans-serif`;
+
+      // Delicate hairline divider rule
+      ctx.strokeStyle = palette.cardBorder;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(outerPad, footerY - (isPortrait ? 24 : 18));
+      ctx.lineTo(width - outerPad, footerY - (isPortrait ? 24 : 18));
+      ctx.stroke();
+
+      let curX = outerPad;
+      rawLinks.forEach((link, idx) => {
+        const { icon, label } = getLinkIconAndLabel(link);
+        const displayText = icon === '•' || label.startsWith('@') ? label : `${icon}  ${label}`;
+        const metrics = ctx.measureText(displayText);
+        const itemW = metrics.width + (isPortrait ? 28 : 20);
+        const itemH = isPortrait ? 34 : 24;
+
+        if (curX + itemW > width - outerPad && idx > 0) return; // Prevent horizontal overflow
+
+        // Subtle capsule
+        roundRectPath(ctx, curX, footerY - itemH / 2, itemW, itemH, isPortrait ? 8 : 6);
+        ctx.fillStyle = palette.pillBg;
+        ctx.fill();
+        ctx.strokeStyle = palette.pillBorder;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = idx === 0 ? palette.accent : palette.muted;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(displayText, curX + itemW / 2, footerY);
+
+        curX += itemW + (isPortrait ? 14 : 10);
+      });
+
+      ctx.restore();
+    }
   }
 };

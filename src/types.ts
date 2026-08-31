@@ -19,6 +19,8 @@ export interface PostData {
   showSpeaker?: boolean;
   keyPills?: string;
   showKeyPills?: boolean;
+  footerLinks?: string[];
+  showFooterLinks?: boolean;
   logoScale?: number;
   logoX?: number;
   logoY?: number;

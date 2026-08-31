@@ -1,42 +1,11 @@
-
 import React, { useEffect, useRef } from 'react';
-import { AspectRatio, BgStyle, PostData } from '../types';
+import { PostData } from '../types';
 
-interface ThumbnailCanvasProps extends PostData {
+interface ThumbnailCanvasProps extends Omit<PostData, 'id'> {
+  id?: number | string;
   onExportReady?: (dataUrl: string, webpUrl?: string, webpSizeKb?: number) => void;
   className?: string;
-  id?: string;
 }
-
-export const loadImage = (src: string): Promise<HTMLImageElement> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
-  });
-};
-
-export const wrapText = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
-  const words = text.split(' ');
-  let line = '';
-  let currentY = y;
-  for (let n = 0; n < words.length; n++) {
-    const testLine = line + words[n] + ' ';
-    const metrics = ctx.measureText(testLine);
-    const testWidth = metrics.width;
-    if (testWidth > maxWidth && n > 0) {
-      ctx.fillText(line, x, currentY);
-      line = words[n] + ' ';
-      currentY += lineHeight;
-    } else {
-      line = testLine;
-    }
-  }
-  ctx.fillText(line, x, currentY);
-  return currentY + lineHeight;
-};
 
 // --- IMPORT TEMPLATES ---
 import { renderProfessional } from './canvas/professional';
@@ -48,6 +17,8 @@ import { renderTechSaaS } from './canvas/techSaas';
 
 export const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = (props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const renderSeqRef = useRef<number>(0);
+  const exportTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -65,19 +36,30 @@ export const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = (props) => {
       height = 1920;
     }
     
-    // Support high DPI
-    const dpr = 2; // Fixed resolution for export quality
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    ctx.scale(dpr, dpr);
-    canvas.style.width = `100%`;
+    // High DPI crisp rendering
+    const dpr = 2;
+    if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+    }
     
-    // Clear canvas
-    ctx.clearRect(0, 0, width, height);
+    // Reset transform & scale to DPR
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+    
+    // Track sequence to discard stale async renders
+    renderSeqRef.current += 1;
+    const currentSeq = renderSeqRef.current;
 
-    const render = async () => {
+    const executeRender = async () => {
       try {
-        await document.fonts.ready;
+        if (document.fonts) {
+          await document.fonts.ready;
+        }
+        
+        // If another render was queued in the meantime, abort this one
+        if (renderSeqRef.current !== currentSeq) return;
+
         switch (props.template) {
           case 'ethereal':
             await renderEthereal(ctx, width, height, props);
@@ -100,42 +82,64 @@ export const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = (props) => {
             break;
         }
 
-        // Export logic
+        if (renderSeqRef.current !== currentSeq) return;
+
+        // Debounce expensive toDataURL export generation so typing remains instant and buttery-smooth
         if (props.onExportReady) {
-          const pngUrl = canvas.toDataURL('image/png');
-          let webpUrl = pngUrl;
-          let webpSize = 0;
-          try {
-            webpUrl = canvas.toDataURL('image/webp', 0.9);
-            const base64str = webpUrl.split(',')[1];
-            if (base64str) {
-              const decoded = atob(base64str);
-              webpSize = Math.round(decoded.length / 1024);
-            }
-          } catch (e) {
-            console.error('WebP export failed', e);
+          if (exportTimerRef.current) {
+            clearTimeout(exportTimerRef.current);
           }
-          props.onExportReady(pngUrl, webpUrl, webpSize);
+          exportTimerRef.current = setTimeout(() => {
+            if (renderSeqRef.current !== currentSeq) return;
+            try {
+              const pngUrl = canvas.toDataURL('image/png');
+              let webpUrl = pngUrl;
+              let webpSize = 0;
+              try {
+                webpUrl = canvas.toDataURL('image/webp', 0.9);
+                const base64str = webpUrl.split(',')[1];
+                if (base64str) {
+                  const decoded = atob(base64str);
+                  webpSize = Math.round(decoded.length / 1024);
+                }
+              } catch {
+                // Ignore WebP error if unsupported
+              }
+              props.onExportReady?.(pngUrl, webpUrl, webpSize);
+            } catch (err) {
+              console.error('Export error: ', err);
+            }
+          }, 250);
         }
       } catch (err) {
         console.error("Template rendering error: ", err);
       }
     };
     
-    render();
-  }, [props]);
+    // Execute on next animation frame
+    const frameId = requestAnimationFrame(() => {
+      executeRender();
+    });
 
-  let displayClass = "max-w-full max-h-full object-contain";
+    return () => {
+      cancelAnimationFrame(frameId);
+      if (exportTimerRef.current) {
+        clearTimeout(exportTimerRef.current);
+      }
+    };
+  }, [props]);
 
   return (
     <canvas
       id={props.id}
       ref={canvasRef}
-      className={`${displayClass} ${props.className || ''}`}
+      className={`rounded-lg shadow-2xl ring-1 ring-white/10 object-contain transition-all duration-150 ${props.className || ''}`}
       style={{ 
         display: 'block', 
-        width: '100%', 
-        height: '100%',
+        maxWidth: '100%', 
+        maxHeight: '100%',
+        width: 'auto',
+        height: 'auto',
         aspectRatio: props.aspectRatio === 'youtube' ? '1280 / 720' : props.aspectRatio === 'reels' ? '1080 / 1920' : '1200 / 630' 
       }}
     />
