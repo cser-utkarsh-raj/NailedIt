@@ -26,7 +26,31 @@ export default function App() {
   });
 
   const handleUpdatePost = (updates: Partial<PostData>) => {
-    setPost((prev) => ({ ...prev, ...updates }));
+    setPost((prev) => {
+      // Shuffle is intentionally style-only. Its old preset objects contained
+      // sample copy, which silently overwrote the user's real content.
+      // Manual edits continue to support normal multi-field updates.
+      const isShufflePreset = Boolean(
+        updates.template &&
+        updates.bgStyle &&
+        updates.title &&
+        updates.subtitle &&
+        updates.category &&
+        updates.brandName &&
+        updates.speakerName &&
+        updates.speakerRole
+      );
+
+      if (isShufflePreset) {
+        return {
+          ...prev,
+          template: updates.template!,
+          bgStyle: updates.bgStyle!,
+        };
+      }
+
+      return { ...prev, ...updates };
+    });
   };
 
   return (
