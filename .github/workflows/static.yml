@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -21,6 +21,137 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Apply source consistency fixes
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          studio = Path('src/components/ThumbnailStudioView.tsx')
+          s = studio.read_text(encoding='utf-8')
+
+          old_shuffle = """  const applyRandomPreset = () => {
+            const random = samplePresets[Math.floor(Math.random() * samplePresets.length)];
+            onUpdatePost(random);
+          };"""
+          new_shuffle = """  const applyRandomPreset = () => {
+            const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
+            const randomTheme = bgStyles[Math.floor(Math.random() * bgStyles.length)];
+
+            // Shuffle changes style only. User content, media, tags, links,
+            // visibility settings, and transforms must never be overwritten.
+            onUpdatePost({
+              template: randomTemplate.id,
+              bgStyle: randomTheme.id,
+            });
+          };"""
+          if old_shuffle in s:
+              s = s.replace(old_shuffle, new_shuffle)
+
+          s = s.replace(
+              "{ id: 'corporate', label: 'Corporate', desc: 'Classic Royal Blue', color: 'from-slate-900 via-blue-600 to-sky-400', dotColor: '#2563EB', border: 'border-blue-500' },",
+              "{ id: 'corporate', label: 'Corporate', desc: 'Navy & Royal Blue', color: 'from-[#071426] via-[#123A6B] to-[#3B82F6]', dotColor: '#3B82F6', border: 'border-blue-500' },"
+          )
+
+          s = re.sub(
+              r"\nconst samplePresets: Partial<PostData>\[\] = \[[\s\S]*?\n\];\n\nconst KeywordInput",
+              "\nconst KeywordInput",
+              s,
+              count=1,
+          )
+          studio.write_text(s, encoding='utf-8')
+
+          minimal = Path('src/components/canvas/minimalistic.ts')
+          s = minimal.read_text(encoding='utf-8')
+          s = s.replace(
+              """        const indexStr = `[0${idx + 1}]`;
+        const text = `${indexStr} / ${label}`;""",
+              """        const text = label;"""
+          )
+          s = s.replace(
+              """        // Accent index bracket
+        ctx.fillStyle = palette.accent;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(indexStr, curX + (isPortrait ? 10 : 8), footerY);
+
+        // Label
+        const bracketW = ctx.measureText(indexStr + ' ').width;
+        ctx.fillStyle = palette.ink;
+        ctx.fillText(`/ ${label}`, curX + (isPortrait ? 10 : 8) + bracketW, footerY);""",
+              """        ctx.fillStyle = palette.ink;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, curX + itemW / 2, footerY);"""
+          )
+          minimal.write_text(s, encoding='utf-8')
+
+          corporate = {
+              'src/components/canvas/professional.ts': """corporate: {
+      bgTop: '#071426',
+      bgBottom: '#0B2A52',
+      cardBg: 'rgba(10, 31, 61, 0.82)',
+      cardBorder: 'rgba(96, 165, 250, 0.18)',
+      ink: '#F8FAFC',
+      muted: '#B8C7DA',
+      accent: '#3B82F6',
+      accentSoft: 'rgba(59, 130, 246, 0.16)',
+      pillBg: 'rgba(255, 255, 255, 0.06)',
+      pillBorder: 'rgba(96, 165, 250, 0.28)',
+      gold: '#F59E0B',
+    },""",
+              'src/components/canvas/minimalistic.ts': """corporate: {
+      bg: '#071426',
+      cardBg: '#0D223F',
+      ink: '#F8FAFC',
+      muted: '#B8C7DA',
+      line: 'rgba(148, 163, 184, 0.22)',
+      accent: '#3B82F6',
+      pillBg: 'rgba(59, 130, 246, 0.10)',
+      pillBorder: 'rgba(96, 165, 250, 0.35)',
+    },""",
+              'src/components/canvas/bohemian.ts': """corporate: {
+      background: '#071426',
+      paper: '#0D223F',
+      ink: '#F8FAFC',
+      muted: '#B8C7DA',
+      accent: '#3B82F6',
+      accentSoft: 'rgba(59, 130, 246, 0.16)',
+      line: 'rgba(148, 163, 184, 0.22)',
+      pillBg: 'rgba(59, 130, 246, 0.10)',
+      pillBorder: 'rgba(96, 165, 250, 0.35)',
+    },""",
+              'src/components/canvas/ethereal.ts': """corporate: { bg: '#071426', panel: '#0D223F', ink: '#F8FAFC', muted: '#B8C7DA', accent: '#3B82F6', line: 'rgba(148,163,184,.22)' },""",
+              'src/components/canvas/techSaas.ts': """corporate: { primary: '#3B82F6', glow: 'rgba(59, 130, 246, 0.28)', bg: '#071426' },""",
+              'src/components/canvas/youtubeBold.ts': """corporate: { bg: '#071426', text: '#FFFFFF', accent: '#3B82F6', blockText: '#000000', glow: '#2563EB' },""",
+          }
+
+          for filename, replacement in corporate.items():
+              p = Path(filename)
+              text = p.read_text(encoding='utf-8')
+              updated, count = re.subn(
+                  r"corporate:\s*\{[\s\S]*?\},\s*\n",
+                  replacement + "\n",
+                  text,
+                  count=1,
+              )
+              if count != 1:
+                  raise SystemExit(f'Corporate palette not found in {filename}')
+              p.write_text(updated, encoding='utf-8')
+
+      - name: Commit source fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/ThumbnailStudioView.tsx src/components/canvas
+          if git diff --cached --quiet; then
+            echo "No source changes to commit."
+          else
+            git commit -m "fix: make shuffle and corporate theme consistent"
+            git push
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@v4
