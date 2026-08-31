@@ -64,16 +64,16 @@ const renderSpeakerIdentity = (ctx: CanvasRenderingContext2D, width: number, hei
 const applyThemeTone = (ctx: CanvasRenderingContext2D, width: number, height: number, bgStyle: PostData['bgStyle']) => {
   if (bgStyle !== 'midnight' && bgStyle !== 'corporate') return;
   ctx.save();
-  ctx.globalCompositeOperation = 'soft-light';
+  ctx.globalCompositeOperation = bgStyle === 'corporate' ? 'multiply' : 'soft-light';
   const gradient = ctx.createLinearGradient(0, 0, width, height);
   if (bgStyle === 'midnight') {
     gradient.addColorStop(0, 'rgba(49,46,129,.22)');
     gradient.addColorStop(.55, 'rgba(30,64,175,.10)');
     gradient.addColorStop(1, 'rgba(14,116,144,.08)');
   } else {
-    gradient.addColorStop(0, 'rgba(180,140,82,.20)');
-    gradient.addColorStop(.5, 'rgba(120,113,108,.10)');
-    gradient.addColorStop(1, 'rgba(45,55,72,.14)');
+    gradient.addColorStop(0, 'rgba(214,189,153,.32)');
+    gradient.addColorStop(.5, 'rgba(168,162,158,.18)');
+    gradient.addColorStop(1, 'rgba(71,65,58,.18)');
   }
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, width, height);
