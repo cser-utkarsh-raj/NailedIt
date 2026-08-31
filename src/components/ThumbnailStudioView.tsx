@@ -166,12 +166,19 @@ const KeywordInput = ({ post, onUpdatePost }: Props) => {
   const [inputValue, setInputValue] = useState('');
   const pills = post.keyPills ? post.keyPills.split(/[,•]/).map(p => p.trim()).filter(Boolean) : [];
 
-  const handleAdd = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && inputValue.trim()) {
-      e.preventDefault();
-      const newPills = [...pills, inputValue.trim()];
+  const handleAdd = () => {
+    const textToAdd = inputValue.trim();
+    if (textToAdd && pills.length < 4) {
+      const newPills = [...pills, textToAdd];
       onUpdatePost({ keyPills: newPills.join(' • ') });
       setInputValue('');
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAdd();
     }
   };
 
@@ -186,17 +193,20 @@ const KeywordInput = ({ post, onUpdatePost }: Props) => {
       <div className="flex items-center justify-between">
         <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
           <Tag className="w-3.5 h-3.5 text-indigo-600" />
-          Tags & Keyword Badges
+          Tags
         </label>
-        <label className="flex items-center gap-1.5 text-xs text-slate-600 font-medium cursor-pointer">
-          <input
-            type="checkbox"
-            checked={post.showKeyPills}
-            onChange={(e) => onUpdatePost({ showKeyPills: e.target.checked })}
-            className="w-3.5 h-3.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-          />
-          Show
-        </label>
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] text-slate-400 font-medium">{pills.length}/4</span>
+          <label className="flex items-center gap-1.5 text-xs text-slate-600 font-medium cursor-pointer">
+            <input
+              type="checkbox"
+              checked={post.showKeyPills}
+              onChange={(e) => onUpdatePost({ showKeyPills: e.target.checked })}
+              className="w-3.5 h-3.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+            />
+            Show
+          </label>
+        </div>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {pills.map((pill, idx) => (
@@ -206,14 +216,27 @@ const KeywordInput = ({ post, onUpdatePost }: Props) => {
           </span>
         ))}
       </div>
-      <input
-        type="text"
-        placeholder="Type tag & press Enter..."
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyDown={handleAdd}
-        className="w-full text-xs rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition shadow-2xs"
-      />
+      {pills.length < 4 && (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Type a tag..."
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="flex-1 text-xs rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition shadow-2xs"
+          />
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={!inputValue.trim()}
+            className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg transition-colors shadow-2xs flex items-center gap-1 shrink-0 cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add
+          </button>
+        </div>
+      )}
     </div>
   );
 };
