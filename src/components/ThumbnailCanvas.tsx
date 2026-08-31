@@ -29,7 +29,7 @@ const renderSpeakerIdentity = (ctx: CanvasRenderingContext2D, width: number, hei
   const x = portrait ? (width - cardW) / 2 : width * .58;
   const y = Math.max(24, height - cardH - (portrait ? 88 : 58));
   const dark = props.template === 'youtube_bold' || props.template === 'tech_saas';
-  const accent = props.bgStyle === 'crimson' ? '#FB7185' : props.bgStyle === 'emerald' ? '#34D399' : props.bgStyle === 'digital' ? '#22D3EE' : props.bgStyle === 'corporate' ? '#A16207' : props.bgStyle === 'obsidian' ? '#FACC15' : '#818CF8';
+  const accent = props.bgStyle === 'crimson' ? '#FB7185' : props.bgStyle === 'emerald' ? '#34D399' : props.bgStyle === 'digital' ? '#22D3EE' : props.bgStyle === 'corporate' ? '#60A5FA' : props.bgStyle === 'obsidian' ? '#FACC15' : '#818CF8';
 
   ctx.save();
   roundRectPath(ctx, x, y, cardW, cardH, 14);
@@ -61,19 +61,40 @@ const renderSpeakerIdentity = (ctx: CanvasRenderingContext2D, width: number, hei
   ctx.restore();
 };
 
+/** Normalize legacy light Corporate bases to the same dark executive foundation. */
+const normalizeCorporateBackground = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = image.data;
+  let changed = false;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    const neutral = Math.max(r, g, b) - Math.min(r, g, b) < 16;
+    if (neutral && r >= 232 && r < 255 && g >= 232 && g < 255 && b >= 232 && b < 255) {
+      const y = Math.floor((i / 4 / canvas.width));
+      const t = y / Math.max(1, canvas.height - 1);
+      data[i] = Math.round(10 + 8 * t);
+      data[i + 1] = Math.round(22 + 18 * t);
+      data[i + 2] = Math.round(42 + 34 * t);
+      changed = true;
+    }
+  }
+  if (changed) ctx.putImageData(image, 0, 0);
+};
+
 const applyThemeTone = (ctx: CanvasRenderingContext2D, width: number, height: number, bgStyle: PostData['bgStyle']) => {
   if (bgStyle !== 'midnight' && bgStyle !== 'corporate') return;
   ctx.save();
-  ctx.globalCompositeOperation = bgStyle === 'corporate' ? 'multiply' : 'soft-light';
+  ctx.globalCompositeOperation = 'soft-light';
   const gradient = ctx.createLinearGradient(0, 0, width, height);
   if (bgStyle === 'midnight') {
     gradient.addColorStop(0, 'rgba(49,46,129,.22)');
     gradient.addColorStop(.55, 'rgba(30,64,175,.10)');
     gradient.addColorStop(1, 'rgba(14,116,144,.08)');
   } else {
-    gradient.addColorStop(0, 'rgba(214,189,153,.32)');
-    gradient.addColorStop(.5, 'rgba(168,162,158,.18)');
-    gradient.addColorStop(1, 'rgba(71,65,58,.18)');
+    gradient.addColorStop(0, 'rgba(30,64,175,.16)');
+    gradient.addColorStop(.5, 'rgba(37,99,235,.08)');
+    gradient.addColorStop(1, 'rgba(14,30,55,.12)');
   }
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, width, height);
@@ -121,6 +142,8 @@ export const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = (props) => {
           default: await renderProfessional(ctx, width, height, props); break;
         }
         if (renderSeqRef.current !== currentSeq) return;
+
+        if (props.bgStyle === 'corporate') normalizeCorporateBackground(ctx, canvas);
         renderSpeakerIdentity(ctx, width, height, props);
         applyThemeTone(ctx, width, height, props.bgStyle);
 
