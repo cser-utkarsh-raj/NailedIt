@@ -7,13 +7,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -26,23 +26,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Apply deterministic design repair
-        shell: bash
-        run: |
-          node scripts/repair-themes.mjs
-          if git diff --quiet; then
-            echo "No design changes needed."
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add src/components/canvas src/components/ThumbnailCanvas.tsx scripts/repair-themes.mjs
-            git commit -m "fix: repair corporate design"
-            git push
-          fi
+          cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build
         run: npm run build
