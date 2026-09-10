@@ -1,5 +1,5 @@
 import { CanvasTemplateProps } from '../../types';
-import { clamp, drawCoverImage, drawContainImage, loadImage, roundRectPath, wrapText } from '../../utils/canvasUtils';
+import { clamp, drawCoverImage, loadImage, roundRectPath, wrapText } from '../../utils/canvasUtils';
 
 type Palette = { bg: string; bg2: string; ink: string; muted: string; accent: string; soft: string };
 
@@ -36,7 +36,14 @@ function fitTitle(ctx: CanvasRenderingContext2D, text: string, maxWidth: number,
     size -= 2;
   }
   ctx.font = `800 ${min}px "Plus Jakarta Sans", "Inter", sans-serif`;
-  return { size: min, lines: text.split(/\s+/).slice(0, maxLines).join(' ') .split('\n') };
+  const fallback: string[] = [];
+  let line = '';
+  for (const word of text.split(/\s+/)) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (ctx.measureText(candidate).width > maxWidth && line) { fallback.push(line); line = word; } else line = candidate;
+  }
+  if (line) fallback.push(line);
+  return { size: min, lines: fallback.slice(0, maxLines) };
 }
 
 function drawTextLines(ctx: CanvasRenderingContext2D, lines: string[], x: number, y: number, size: number, color: string, lineHeight = 1.04) {
@@ -56,7 +63,7 @@ export const renderPremium = async (ctx: CanvasRenderingContext2D, width: number
   const p = palettes[props.bgStyle] || palettes.midnight;
   const portrait = height > width;
   const t = props.template;
-  const pad = Math.max(34, Math.min(width, height) * (portrait ? .055 : .055));
+  const pad = Math.max(34, Math.min(width, height) * .055);
   const title = clean(props.title).toUpperCase();
   const subtitle = clean(props.subtitle);
   const tagList = pills(props.keyPills);
@@ -70,7 +77,6 @@ export const renderPremium = async (ctx: CanvasRenderingContext2D, width: number
   const glow = ctx.createRadialGradient(width * (hasImage && !portrait ? .82 : .25), height * .2, 0, width * (hasImage && !portrait ? .82 : .25), height * .2, Math.max(width, height) * .7);
   glow.addColorStop(0, p.soft); glow.addColorStop(1, 'transparent'); ctx.fillStyle = glow; ctx.fillRect(0, 0, width, height);
 
-  // Editorial grid + edge treatment: subtle enough to feel intentional, never noisy.
   ctx.strokeStyle = 'rgba(255,255,255,.045)'; ctx.lineWidth = 1;
   const grid = Math.max(80, Math.min(width, height) * .12);
   for (let x = pad; x < width - pad; x += grid) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke(); }
@@ -109,7 +115,7 @@ export const renderPremium = async (ctx: CanvasRenderingContext2D, width: number
         ctx.font = `700 ${portrait ? 20 : 17}px "Plus Jakarta Sans", "Inter", sans-serif`; ctx.fillStyle = '#fff'; ctx.textBaseline = 'top'; ctx.fillText(props.speakerName || '', imageX + 40, cardY + 13);
         ctx.font = `600 ${portrait ? 11 : 10}px "Plus Jakarta Sans", "Inter", sans-serif`; ctx.fillStyle = accent; ctx.fillText((props.speakerRole || '').toUpperCase(), imageX + 40, cardY + (portrait ? 42 : 39));
       }
-    } catch { /* image is optional */ }
+    } catch { }
   }
 
   ctx.save();
@@ -120,7 +126,7 @@ export const renderPremium = async (ctx: CanvasRenderingContext2D, width: number
   let y = textY;
 
   if (props.brandName) {
-    ctx.font = `800 ${portrait ? 15 : 13}px "Plus Jakarta Sans", "Inter", sans-serif`; ctx.fillStyle = accent; ctx.textBaseline = 'top'; ctx.letterSpacing = '0px';
+    ctx.font = `800 ${portrait ? 15 : 13}px "Plus Jakarta Sans", "Inter", sans-serif`; ctx.fillStyle = accent; ctx.textBaseline = 'top';
     ctx.fillText(props.brandName.toUpperCase(), textX, y); y += portrait ? 31 : 28;
   }
 
@@ -158,7 +164,6 @@ export const renderPremium = async (ctx: CanvasRenderingContext2D, width: number
     ctx.fillText(footer, textX, height - pad * .7);
   }
 
-  // Theme-specific final polish.
   if (t === 'youtube_bold') {
     ctx.fillStyle = `${accent}22`; ctx.fillRect(0, height * .82, width, height * .18);
   } else if (t === 'tech_saas') {
