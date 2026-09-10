@@ -1,5 +1,7 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
+
+type ApiRequest = { method?: string; body?: Record<string, unknown> };
+type ApiResponse = { status: (code: number) => ApiResponse; json: (value: unknown) => unknown };
 
 const schema = {
   type: Type.OBJECT,
@@ -15,7 +17,7 @@ const schema = {
   required: ['template','bgStyle','title','subtitle','category','keyPills','textScale'],
 };
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!process.env.GEMINI_API_KEY) return res.status(503).json({ error: 'AI is not configured; local design engine remains available.' });
 
@@ -34,9 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     });
 
-    const text = result.text || '{}';
-    const plan = JSON.parse(text);
-    return res.status(200).json(plan);
+    return res.status(200).json(JSON.parse(result.text || '{}'));
   } catch (error) {
     console.error('NailedIt AI design error', error);
     return res.status(500).json({ error: 'AI design failed; use the local design engine.' });
