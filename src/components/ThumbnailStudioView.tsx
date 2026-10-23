@@ -342,16 +342,22 @@ export const ThumbnailStudioView = ({ post, onUpdatePost }: Props) => {
   const handleSpeakerPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      onUpdatePost({ speakerImageUrl: url, showSpeaker: true });
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') onUpdatePost({ speakerImageUrl: reader.result, showSpeaker: true });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      onUpdatePost({ logoImageUrl: url });
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') onUpdatePost({ logoImageUrl: reader.result });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -1120,3 +1126,4 @@ export const ThumbnailStudioView = ({ post, onUpdatePost }: Props) => {
     </div>
   );
 };
+
