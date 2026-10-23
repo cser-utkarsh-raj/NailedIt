@@ -41,6 +41,7 @@ flowchart TD
 - 🖼️ Image positioning with scale and pan controls.
 - 🖥️ High-DPI Canvas rendering.
 - 📤 PNG and WebP export plus clipboard image copying.
+- 💾 Save and reopen editable project files, including uploaded image assets.
 - 🔒 Client-side image processing.
 
 ## 🛠️ Tech Stack
@@ -56,6 +57,8 @@ npm install
 npm run dev
 npm run build
 ```
+
+Use **Save Project** to download a portable `.json` project file and **Open** to continue editing it later. Uploaded speaker and logo images are embedded in that file; project files can grow when large images are used.
 
 ## 🎯 Design & Engineering Principles
 
@@ -73,3 +76,4 @@ NailedIt is a standalone `.dot` tool: small enough to use immediately, but polis
 > **NailedIt · Make the first impression count.**
 >
 > **Presented by .dot**
+
